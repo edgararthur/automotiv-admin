@@ -16,6 +16,9 @@ import ProductModeration from './pages/admin/ProductModeration';
 import SupportTickets from './pages/admin/SupportTickets';
 import PlatformAnalytics from './pages/admin/PlatformAnalytics';
 
+// Test Component
+import TestShared from './TestShared';
+
 // Common Components
 import LoadingScreen from './components/common/LoadingScreen';
 import ProtectedRoute from './components/auth/ProtectedRoute';
@@ -30,6 +33,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/test-shared" element={<TestShared />} />
           
           {/* Protected Admin Routes - Wrapped with AdminLayout */}
           <Route path="/" element={

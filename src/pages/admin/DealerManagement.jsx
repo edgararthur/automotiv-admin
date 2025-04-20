@@ -2,137 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { FiPlus, FiEdit, FiTrash2, FiCheck, FiX, FiSearch, FiFilter, FiCheckCircle, FiXCircle, FiEye, FiAlertTriangle, FiUser, FiPackage, FiDollarSign, FiCalendar, FiMail, FiEdit2, FiPercent, FiMapPin, FiChevronDown, FiPhone, FiUserPlus } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
-// Mock dealer data
-const MOCK_DEALERS = [
-  {
-    id: 'DLR-1001',
-    name: 'AutoParts Express',
-    email: 'info@autopartsexpress.com',
-    phone: '(555) 123-4567',
-    address: '123 Main St, Chicago, IL 60601',
-    status: 'Active',
-    verified: true,
-    joinDate: '2023-01-15T10:30:00',
-    productsListed: 156,
-    salesVolume: 48500,
-    rating: 4.7,
-    businessType: 'Retailer',
-    contactPerson: 'Michael Johnson',
-    taxId: 'TAX-12345678',
-    businessLicense: 'BL-987654321',
-    verificationDate: '2023-01-20T15:45:00'
-  },
-  {
-    id: 'DLR-1002',
-    name: 'Premium Auto Supply',
-    email: 'sales@premiumautosupply.com',
-    phone: '(555) 234-5678',
-    address: '456 Oak Avenue, Detroit, MI 48201',
-    status: 'Active',
-    verified: true,
-    joinDate: '2023-02-05T09:15:00',
-    productsListed: 231,
-    salesVolume: 72600,
-    rating: 4.9,
-    businessType: 'Wholesaler',
-    contactPerson: 'Sarah Williams',
-    taxId: 'TAX-23456789',
-    businessLicense: 'BL-876543210',
-    verificationDate: '2023-02-10T14:30:00'
-  },
-  {
-    id: 'DLR-1003',
-    name: 'Budget Parts Co.',
-    email: 'service@budgetparts.com',
-    phone: '(555) 345-6789',
-    address: '789 Pine Street, Cleveland, OH 44101',
-    status: 'Suspended',
-    verified: true,
-    joinDate: '2023-02-20T11:45:00',
-    productsListed: 98,
-    salesVolume: 18900,
-    rating: 3.2,
-    businessType: 'Retailer',
-    contactPerson: 'Robert Davis',
-    taxId: 'TAX-34567890',
-    businessLicense: 'BL-765432109',
-    verificationDate: '2023-02-25T10:15:00',
-    suspensionReason: 'Multiple customer complaints about product quality'
-  },
-  {
-    id: 'DLR-1004',
-    name: 'Elite Auto Parts',
-    email: 'contact@eliteautoparts.com',
-    phone: '(555) 456-7890',
-    address: '101 Maple Road, Dallas, TX 75201',
-    status: 'Active',
-    verified: true,
-    joinDate: '2023-03-10T13:20:00',
-    productsListed: 312,
-    salesVolume: 96700,
-    rating: 4.8,
-    businessType: 'Manufacturer',
-    contactPerson: 'Patricia Miller',
-    taxId: 'TAX-45678901',
-    businessLicense: 'BL-654321098',
-    verificationDate: '2023-03-15T16:40:00'
-  },
-  {
-    id: 'DLR-1005',
-    name: 'Fast Track Components',
-    email: 'support@fasttrackauto.com',
-    phone: '(555) 567-8901',
-    address: '202 Cedar Lane, Miami, FL 33101',
-    status: 'Pending',
-    verified: false,
-    joinDate: '2023-04-05T10:10:00',
-    productsListed: 0,
-    salesVolume: 0,
-    rating: 0,
-    businessType: 'Distributor',
-    contactPerson: 'Daniel Wilson',
-    taxId: 'TAX-56789012',
-    businessLicense: 'BL-543210987',
-    verificationDate: null,
-    pendingDocuments: ['Business registration certificate']
-  },
-  {
-    id: 'DLR-1006',
-    name: 'Vintage Auto Specialties',
-    email: 'info@vintageautospec.com',
-    phone: '(555) 678-9012',
-    address: '303 Birch Court, Seattle, WA 98101',
-    status: 'Active',
-    verified: true,
-    joinDate: '2023-04-20T14:55:00',
-    productsListed: 87,
-    salesVolume: 41200,
-    rating: 4.6,
-    businessType: 'Specialist',
-    contactPerson: 'Emma Thompson',
-    taxId: 'TAX-67890123',
-    businessLicense: 'BL-432109876',
-    verificationDate: '2023-04-25T11:30:00'
-  },
-  {
-    id: 'DLR-1007',
-    name: 'International Parts Co.',
-    email: 'orders@internationalparts.com',
-    phone: '(555) 789-0123',
-    address: '404 Elm Boulevard, Los Angeles, CA 90001',
-    status: 'Inactive',
-    verified: true,
-    joinDate: '2023-05-15T09:40:00',
-    productsListed: 134,
-    salesVolume: 32100,
-    rating: 4.1,
-    businessType: 'Importer',
-    contactPerson: 'James Anderson',
-    taxId: 'TAX-78901234',
-    businessLicense: 'BL-321098765',
-    verificationDate: '2023-05-20T13:15:00'
-  }
-];
+// Use direct service implementations to avoid import issues
+import DirectDealerService from '../../services/DirectDealerService';
+import DirectUserService from '../../services/DirectUserService';
 
 const DealerManagement = () => {
   const [dealers, setDealers] = useState([]);
@@ -146,16 +18,55 @@ const DealerManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Simulate API call to fetch dealers
-    const fetchDealers = () => {
+    // Fetch dealers from the API
+    const fetchDealers = async () => {
       setIsLoading(true);
-      setTimeout(() => {
-        setDealers(MOCK_DEALERS);
-        setFilteredDealers(MOCK_DEALERS);
+      setError(null);
+      
+      try {
+        // Use DealerService to get all dealers
+        const result = await DirectDealerService.getDealers();
+        
+        if (result.success) {
+          // Transform dealer data to match the expected format
+          const transformedDealers = result.dealers.map(dealer => ({
+            id: dealer.id,
+            name: dealer.company_name || dealer.name,
+            email: dealer.user?.email || 'N/A',
+            phone: dealer.phone || 'N/A',
+            address: dealer.address || 'N/A',
+            status: dealer.verification_status === 'APPROVED' ? 'Active' : 
+                   dealer.verification_status === 'PENDING' ? 'Pending' :
+                   dealer.verification_status === 'REJECTED' ? 'Suspended' : 'Inactive',
+            verified: dealer.verification_status === 'APPROVED',
+            joinDate: dealer.created_at,
+            productsListed: dealer.product_count || 0,
+            salesVolume: dealer.sales_volume || 0,
+            rating: dealer.average_rating || 0,
+            businessType: dealer.business_type || 'Retailer',
+            contactPerson: dealer.user?.name || 'N/A',
+            taxId: dealer.tax_id || 'N/A',
+            businessLicense: dealer.business_license || 'N/A',
+            verificationDate: dealer.verified_at,
+            suspensionReason: dealer.suspension_reason,
+            // Keep the original data for reference
+            originalData: dealer
+          }));
+          
+          setDealers(transformedDealers);
+          setFilteredDealers(transformedDealers);
+        } else {
+          throw new Error(result.error || 'Failed to fetch dealers');
+        }
+      } catch (err) {
+        console.error('Error fetching dealers:', err);
+        setError(err.message || 'An error occurred while fetching dealers');
+      } finally {
         setIsLoading(false);
-      }, 800);
+      }
     };
 
     fetchDealers();
@@ -245,22 +156,91 @@ const DealerManagement = () => {
     setShowModal(true);
   };
 
-  const handleApprove = (id) => {
+  const handleApprove = async (id) => {
+    try {
+      const dealer = dealers.find(d => d.id === id);
+      if (!dealer || !dealer.originalData?.user_id) {
+        throw new Error('Could not find dealer information');
+      }
+      
+      // Use UserService to update the dealer's status
+      const result = await DirectUserService.updateUserStatus(dealer.originalData.user_id, 'active');
+      
+      if (result.success) {
+        // Update local state
     setDealers(dealers.map(dealer => 
       dealer.id === id ? { ...dealer, status: 'Active', verified: true } : dealer
     ));
+        
+        // Update filtered dealers as well
+        setFilteredDealers(filteredDealers.map(dealer => 
+          dealer.id === id ? { ...dealer, status: 'Active', verified: true } : dealer
+        ));
+      } else {
+        throw new Error(result.error || 'Failed to approve dealer');
+      }
+    } catch (error) {
+      console.error('Error approving dealer:', error);
+      alert(`Failed to approve dealer: ${error.message}`);
+    }
   };
 
-  const handleSuspend = (id) => {
+  const handleSuspend = async (id) => {
+    try {
+      const dealer = dealers.find(d => d.id === id);
+      if (!dealer || !dealer.originalData?.user_id) {
+        throw new Error('Could not find dealer information');
+      }
+      
+      // Use UserService to update the dealer's status
+      const result = await DirectUserService.updateUserStatus(dealer.originalData.user_id, 'suspended');
+      
+      if (result.success) {
+        // Update local state
     setDealers(dealers.map(dealer => 
       dealer.id === id ? { ...dealer, status: 'Suspended' } : dealer
     ));
+        
+        // Update filtered dealers as well
+        setFilteredDealers(filteredDealers.map(dealer => 
+          dealer.id === id ? { ...dealer, status: 'Suspended' } : dealer
+        ));
+      } else {
+        throw new Error(result.error || 'Failed to suspend dealer');
+      }
+    } catch (error) {
+      console.error('Error suspending dealer:', error);
+      alert(`Failed to suspend dealer: ${error.message}`);
+    }
   };
 
-  const handleReactivate = (id) => {
+  const handleReactivate = async (id) => {
+    try {
+      const dealer = dealers.find(d => d.id === id);
+      if (!dealer || !dealer.originalData?.user_id) {
+        throw new Error('Could not find dealer information');
+      }
+      
+      // Use UserService to update the dealer's status
+      const result = await DirectUserService.updateUserStatus(dealer.originalData.user_id, 'active');
+      
+      if (result.success) {
+        // Update local state
     setDealers(dealers.map(dealer => 
       dealer.id === id ? { ...dealer, status: 'Active' } : dealer
     ));
+        
+        // Update filtered dealers as well
+        setFilteredDealers(filteredDealers.map(dealer => 
+          dealer.id === id ? { ...dealer, status: 'Active' } : dealer
+        ));
+      } else {
+        throw new Error(result.error || 'Failed to reactivate dealer');
+      }
+    } catch (error) {
+      console.error('Error reactivating dealer:', error);
+      alert(`Failed to reactivate dealer: ${error.message}`);
+    }
   };
 
   // Status badge component

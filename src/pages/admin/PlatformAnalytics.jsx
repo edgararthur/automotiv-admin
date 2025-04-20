@@ -1,85 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiDownload, FiFilter, FiCalendar, FiPieChart, FiBarChart2, FiTrendingUp, FiTrendingDown } from 'react-icons/fi';
-
-// Mock data for platform analytics
-const MOCK_DATA = {
-  totalRevenue: {
-    value: 1248650,
-    change: 18.2,
-    isPositive: true
-  },
-  salesCount: {
-    value: 4287,
-    change: 12.5,
-    isPositive: true
-  },
-  activeUsers: {
-    value: 8942,
-    change: 9.8,
-    isPositive: true
-  },
-  averageOrderValue: {
-    value: 291,
-    change: 5.3,
-    isPositive: true
-  },
-  conversionRate: {
-    value: 3.42,
-    change: -0.8,
-    isPositive: false
-  },
-  categories: [
-    { name: 'Engine Parts', value: 28.4 },
-    { name: 'Exterior', value: 15.2 },
-    { name: 'Lighting', value: 14.8 },
-    { name: 'Brakes', value: 12.5 },
-    { name: 'Suspension', value: 9.7 },
-    { name: 'Interior', value: 8.9 },
-    { name: 'Other', value: 10.5 }
-  ],
-  monthlyRevenue: [
-    { month: 'Jan', value: 82500 },
-    { month: 'Feb', value: 89700 },
-    { month: 'Mar', value: 95400 },
-    { month: 'Apr', value: 102800 },
-    { month: 'May', value: 108500 },
-    { month: 'Jun', value: 115200 },
-    { month: 'Jul', value: 121900 },
-    { month: 'Aug', value: 118400 },
-    { month: 'Sep', value: 124600 },
-    { month: 'Oct', value: 132800 },
-    { month: 'Nov', value: 138650 },
-    { month: 'Dec', value: 0 } // Current month (incomplete)
-  ],
-  topProducts: [
-    { name: 'Premium LED Headlight Kit', sales: 258, revenue: 49020 },
-    { name: 'Performance Brake Pad Set', sales: 204, revenue: 32640 },
-    { name: 'High-Flow Air Filter', sales: 186, revenue: 13950 },
-    { name: 'Synthetic Oil - 5W-30 5L', sales: 175, revenue: 10500 },
-    { name: 'Suspension Lowering Kit', sales: 142, revenue: 32660 }
-  ],
-  trafficSources: [
-    { source: 'Organic Search', users: 3856, percentage: 42.8 },
-    { source: 'Direct', users: 1825, percentage: 20.3 },
-    { source: 'Social Media', users: 1268, percentage: 14.1 },
-    { source: 'Referral', users: 989, percentage: 11.0 },
-    { source: 'Email', users: 652, percentage: 7.3 },
-    { source: 'Other', users: 410, percentage: 4.5 }
-  ],
-  userDevices: [
-    { device: 'Desktop', percentage: 48.6 },
-    { device: 'Mobile', percentage: 42.3 },
-    { device: 'Tablet', percentage: 9.1 }
-  ],
-  geographicData: [
-    { region: 'North America', sales: 2486, percentage: 58.0 },
-    { region: 'Europe', sales: 986, percentage: 23.0 },
-    { region: 'Asia', sales: 472, percentage: 11.0 },
-    { region: 'Australia', sales: 214, percentage: 5.0 },
-    { region: 'South America', sales: 86, percentage: 2.0 },
-    { region: 'Africa', sales: 43, percentage: 1.0 }
-  ]
-};
+import { FiDownload, FiFilter, FiCalendar, FiPieChart, FiBarChart2, FiTrendingUp, FiTrendingDown, FiAlertCircle } from 'react-icons/fi';
+import { AnalyticsService } from '../../../../shared';
 
 // Format currency function
 const formatCurrency = (value) => {
@@ -141,6 +62,7 @@ const generatePieChart = (data) => {
 const PlatformAnalytics = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
   const [timeRange, setTimeRange] = useState('year');
   const [dateRange, setDateRange] = useState({
     start: new Date(new Date().setMonth(new Date().getMonth() - 12)).toISOString().slice(0, 10),
@@ -148,16 +70,32 @@ const PlatformAnalytics = () => {
   });
 
   useEffect(() => {
-    // Simulate API call to fetch analytics data
-    const fetchData = () => {
-      setTimeout(() => {
-        setData(MOCK_DATA);
+    // Fetch real analytics data
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const { success, data: analyticsData, error: analyticsError } = await AnalyticsService.getPlatformAnalytics({
+          timeRange,
+          startDate: dateRange.start,
+          endDate: dateRange.end
+        });
+        
+        if (success && analyticsData) {
+          setData(analyticsData);
+        } else {
+          setError(analyticsError || 'Failed to fetch analytics data');
+        }
+      } catch (err) {
+        setError(err.message || 'An unexpected error occurred');
+      } finally {
         setLoading(false);
-      }, 800);
+      }
     };
     
     fetchData();
-  }, [timeRange]);
+  }, [timeRange, dateRange]);
 
   // Handle time range change
   const handleTimeRangeChange = (range) => {
@@ -185,6 +123,38 @@ const PlatformAnalytics = () => {
       start: start.toISOString().slice(0, 10),
       end: now.toISOString().slice(0, 10)
     });
+  };
+
+  // Handle date range change
+  const handleDateRangeChange = (start, end) => {
+    setDateRange({ start, end });
+  };
+
+  // Handle export click
+  const handleExport = () => {
+    if (!data) return;
+    
+    // Create CSV content
+    let csvContent = "data:text/csv;charset=utf-8,";
+    
+    // Add headers
+    csvContent += "Category,Value,Change\n";
+    
+    // Add data rows
+    csvContent += `Total Revenue,${data.totalRevenue.value},${data.totalRevenue.change}%\n`;
+    csvContent += `Total Orders,${data.salesCount.value},${data.salesCount.change}%\n`;
+    csvContent += `Active Users,${data.activeUsers.value},${data.activeUsers.change}%\n`;
+    csvContent += `Avg. Order Value,${data.averageOrderValue.value},${data.averageOrderValue.change}%\n`;
+    csvContent += `Conversion Rate,${data.conversionRate.value}%,${data.conversionRate.change}%\n`;
+    
+    // Encode and download
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `platform-analytics-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -235,6 +205,7 @@ const PlatformAnalytics = () => {
           </div>
           <button
             className="flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+            onClick={handleExport}
           >
             <FiDownload className="mr-2" />
             Export
@@ -246,7 +217,22 @@ const PlatformAnalytics = () => {
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
-      ) : (
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center h-64 text-center">
+          <FiAlertCircle className="text-red-500 text-4xl mb-4" />
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Failed to load analytics data</h3>
+          <p className="text-gray-600 max-w-md">{error}</p>
+          <button 
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            onClick={() => {
+              setLoading(true);
+              window.location.reload();
+            }}
+          >
+            Try Again
+          </button>
+        </div>
+      ) : data ? (
         <div className="space-y-6">
           {/* Key metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -254,9 +240,9 @@ const PlatformAnalytics = () => {
               <div className="flex justify-between">
                 <div>
                   <p className="text-sm text-gray-500 font-medium">Total Revenue</p>
-                  <h3 className="text-2xl font-bold mt-1">{formatCurrency(data.totalRevenue.value)}</h3>
+                  <h3 className="text-lg font-bold mt-1">{formatCurrency(data.totalRevenue.value)}</h3>
                 </div>
-                <div className={`flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                <div className={`flex items-center px-2 py-2 rounded-full w-30 h-30 text-xs font-medium ${
                   data.totalRevenue.isPositive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                 }`}>
                   {data.totalRevenue.isPositive ? (
@@ -468,7 +454,7 @@ const PlatformAnalytics = () => {
             </div>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 };

@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "autoplus-shared": "file:./shared",
+    "autoplus-shared": "file:../shared",
     "axios": "^1.4.0",
     "chart.js": "^4.3.3",
     "clsx": "^2.0.0",

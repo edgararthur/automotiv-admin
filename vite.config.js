@@ -12,10 +12,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 3003, // Different port for admin platform
     },
+    optimizeDeps: {
+      include: ['autoplus-shared']
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        'autoplus-shared': path.resolve(__dirname, './shared')
+        'autoplus-shared': path.resolve(__dirname, '../shared')
       },
     },
   };

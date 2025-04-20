@@ -10,120 +10,8 @@ import {
   FiChevronUp,
   FiAlertTriangle
 } from 'react-icons/fi';
-
-// Mock pending dealer applications
-const mockApplications = [
-  {
-    id: 'APP-1234',
-    businessName: 'Premium Auto Parts Inc.',
-    contactName: 'David Brown',
-    email: 'david.brown@premiumautoparts.com',
-    phone: '(555) 123-4567',
-    dateSubmitted: '2023-11-26T08:33:12Z',
-    status: 'pending',
-    businessType: 'Corporation',
-    yearEstablished: 2015,
-    website: 'www.premiumautoparts.com',
-    address: {
-      street: '123 Main Street',
-      city: 'Anytown',
-      state: 'CA',
-      zipCode: '12345',
-      country: 'United States'
-    },
-    taxId: '12-3456789',
-    documents: [
-      { name: 'Business License', url: '#', verified: false },
-      { name: 'Tax Certificate', url: '#', verified: false },
-      { name: 'Identity Proof', url: '#', verified: true }
-    ],
-    inventory: {
-      categories: ['Engine Parts', 'Brakes & Suspension', 'Lighting'],
-      estimatedProducts: 120,
-      manufacturers: ['Bosch', 'Denso', 'Brembo']
-    },
-    notes: [
-      {
-        author: 'Emily Davis',
-        date: '2023-11-27T14:22:45Z',
-        content: 'Called to verify business location. Spoke with David who confirmed all details.'
-      }
-    ]
-  },
-  {
-    id: 'APP-1235',
-    businessName: 'AutoTech Solutions',
-    contactName: 'Jennifer Wilson',
-    email: 'jennifer@autotechsolutions.com',
-    phone: '(555) 234-5678',
-    dateSubmitted: '2023-11-24T15:41:33Z',
-    status: 'review',
-    businessType: 'LLC',
-    yearEstablished: 2018,
-    website: 'www.autotechsolutions.com',
-    address: {
-      street: '456 Oak Avenue',
-      city: 'Metropolis',
-      state: 'NY',
-      zipCode: '67890',
-      country: 'United States'
-    },
-    taxId: '98-7654321',
-    documents: [
-      { name: 'Business License', url: '#', verified: true },
-      { name: 'Tax Certificate', url: '#', verified: true },
-      { name: 'Identity Proof', url: '#', verified: false }
-    ],
-    inventory: {
-      categories: ['Electronics', 'Tools & Equipment', 'Interior Accessories'],
-      estimatedProducts: 75,
-      manufacturers: ['3M', 'Duralast', 'Snap-on']
-    },
-    notes: [
-      {
-        author: 'Emily Davis',
-        date: '2023-11-25T10:15:22Z',
-        content: 'Business license and tax certificate verified. Waiting on identity proof.'
-      },
-      {
-        author: 'John Smith',
-        date: '2023-11-26T09:45:12Z',
-        content: 'Inventory list seems limited. Need to discuss minimum stocking requirements.'
-      }
-    ]
-  },
-  {
-    id: 'APP-1236',
-    businessName: 'Elite Automotive Parts',
-    contactName: 'Michael Chen',
-    email: 'michael@eliteautoparts.com',
-    phone: '(555) 345-6789',
-    dateSubmitted: '2023-11-20T12:17:41Z',
-    status: 'pending',
-    businessType: 'Sole Proprietorship',
-    yearEstablished: 2020,
-    website: 'www.eliteautoparts.com',
-    address: {
-      street: '789 Pine Lane',
-      city: 'Springfield',
-      state: 'IL',
-      zipCode: '54321',
-      country: 'United States'
-    },
-    taxId: '45-6789123',
-    documents: [
-      { name: 'Business License', url: '#', verified: false },
-      { name: 'Tax Certificate', url: '#', verified: false },
-      { name: 'Identity Proof', url: '#', verified: false }
-    ],
-    inventory: {
-      categories: ['Exhaust Systems', 'Fuel & Air', 'Cooling Systems'],
-      estimatedProducts: 90,
-      manufacturers: ['Magnaflow', 'K&N', 'Mishimoto']
-    },
-    notes: []
-  }
-];
+import UserService from '../../../../shared/services/userService.js';
+import supabase from '../../../../shared/supabase/supabaseClient.js';
 
 const DealerApprovals = () => {
   const [applications, setApplications] = useState([]);
@@ -131,25 +19,101 @@ const DealerApprovals = () => {
   const [activeTab, setActiveTab] = useState('pending');
   const [expandedAppId, setExpandedAppId] = useState(null);
   const [noteText, setNoteText] = useState('');
+  const [processingIds, setProcessingIds] = useState([]);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
   
   // Load applications data
   useEffect(() => {
-    // In a real app, this would be an API call
+    fetchDealerApplications();
+  }, [activeTab]);
+  
+  const fetchDealerApplications = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setApplications(mockApplications);
+    setError(null);
+    
+    try {
+      // Use UserService to get users with dealer role and filter by verification status
+      const statusMapping = {
+        'pending': 'PENDING',
+        'review': 'PENDING',  // Use PENDING for review too, differentiate in UI only
+        'approved': 'APPROVED',
+        'rejected': 'REJECTED'
+      };
+      
+      const filters = {
+        role: 'dealer'
+      };
+      
+      if (activeTab !== 'all') {
+        filters.verification_status = statusMapping[activeTab];
+      }
+      
+      const result = await UserService.getAllUsers(filters);
+      
+      if (result.success) {
+        // Transform user data to the expected application format
+        const transformedApplications = result.users.map(user => {
+          // Determine UI status - for items in 'review' tab, we need to check if they were previously marked as review
+          let uiStatus = user.status;
+          // If we're in the review tab, override the status for display purposes
+          if (activeTab === 'review' && user.status === 'pending') {
+            uiStatus = 'review';
+          }
+          
+          return {
+            id: user.dealerInfo?.id || user.id,
+            businessName: user.dealerInfo?.company_name || user.company || 'Unknown',
+            contactName: user.name,
+            email: user.email,
+            phone: user.dealerInfo?.phone || user.phone || 'Not provided',
+            dateSubmitted: user.dealerInfo?.created_at || user.registeredDate,
+            status: uiStatus, // Use UI-specific status
+            businessType: user.dealerInfo?.business_type || 'Not specified',
+            yearEstablished: user.dealerInfo?.year_established || 'Not specified',
+            website: user.dealerInfo?.website || 'Not provided',
+            address: {
+              street: user.dealerInfo?.address?.street || user.dealerInfo?.street_address || 'Not provided',
+              city: user.dealerInfo?.address?.city || user.dealerInfo?.city || 'Not provided',
+              state: user.dealerInfo?.address?.state || user.dealerInfo?.region || 'Not provided',
+              zipCode: user.dealerInfo?.address?.zip_code || user.dealerInfo?.postal_code || 'Not provided',
+              country: user.dealerInfo?.address?.country || user.dealerInfo?.country || 'Not provided'
+            },
+            taxId: user.dealerInfo?.tax_id || 'Not provided',
+            documents: user.dealerInfo?.documents?.map(doc => ({
+              name: doc.name || doc.type || 'Document',
+              url: doc.url || '#',
+              verified: doc.verified || false
+            })) || [],
+            inventory: {
+              categories: user.dealerInfo?.inventory?.categories || [],
+              estimatedProducts: user.dealerInfo?.inventory?.estimated_products || 0,
+              manufacturers: user.dealerInfo?.inventory?.manufacturers || []
+            },
+            notes: user.dealerInfo?.notes?.map(note => ({
+              author: note.author_name || 'Admin',
+              date: note.created_at,
+              content: note.content
+            })) || [],
+            // Store original user data for actions
+            userData: user
+          };
+        });
+        
+        setApplications(transformedApplications);
+      } else {
+        throw new Error(result.error || 'Failed to fetch dealer applications');
+      }
+    } catch (err) {
+      console.error('Error fetching dealer applications:', err);
+      setError(err.message || 'An error occurred while fetching dealer applications');
+    } finally {
       setLoading(false);
-    }, 500);
-  }, []);
+    }
+  };
   
   // Filter applications based on status
-  const filteredApplications = applications.filter(app => {
-    if (activeTab === 'pending') return app.status === 'pending';
-    if (activeTab === 'review') return app.status === 'review';
-    if (activeTab === 'approved') return app.status === 'approved';
-    if (activeTab === 'rejected') return app.status === 'rejected';
-    return true; // 'all' tab
-  });
+  const filteredApplications = applications;
   
   // Format date for display
   const formatDate = (dateString) => {
@@ -162,11 +126,148 @@ const DealerApprovals = () => {
   };
   
   // Handle application status change
-  const handleStatusChange = (appId, newStatus) => {
-    // In a real app, this would be an API call
-    setApplications(applications.map(app => 
-      app.id === appId ? { ...app, status: newStatus } : app
-    ));
+  const handleStatusChange = async (appId, newStatus) => {
+    setProcessingIds(prev => [...prev, appId]);
+    setError(null);
+    setSuccessMessage(null);
+    
+    console.log('handleStatusChange called with:', { appId, newStatus });
+    
+    try {
+      const application = applications.find(app => app.id === appId);
+      if (!application) {
+        throw new Error('Application not found');
+      }
+      
+      console.log('Application found:', application);
+      
+      // Get the user ID from the application
+      const userId = application.userData.id;
+      console.log('Will update user with ID:', userId);
+      
+      // Create a temporary DirectDealerService inline since we're having issues
+      // with importing the actual file
+      const DirectDealerService = {
+        async updateDealerStatus(userId, status) {
+          try {
+            console.log('Attempting direct dealer status update for:', { userId, status });
+            
+            // Expanded list of possible status values to try
+            const statusMappings = {
+              'approved': [
+                'approved', 'APPROVED', 'Approved', // Text formats
+                '1', 1, // Numeric formats
+                'A', 'active', 'ACTIVE', 'Active', // Code formats
+                'true', true, // Boolean formats
+                'verified', 'VERIFIED', 'Verified' // Alternative terms
+              ],
+              'rejected': [
+                'rejected', 'REJECTED', 'Rejected',
+                '0', 0, '-1', -1,
+                'R', 'inactive', 'INACTIVE', 'Inactive',
+                'false', false,
+                'declined', 'DECLINED', 'Declined'
+              ],
+              'pending': [
+                'pending', 'PENDING', 'Pending',
+                '2', 2,
+                'P', 'review', 'REVIEW', 'Review',
+                'null', null,
+                'awaiting', 'AWAITING', 'Awaiting'
+              ]
+            };
+            
+            // Get the appropriate list of values to try based on the requested status
+            const statusValues = statusMappings[status.toLowerCase()] || [status];
+            
+            // First, try to get the current value to see what's already accepted
+            const { data: dealer, error: fetchError } = await supabase
+              .from('dealers')
+              .select('verification_status')
+              .eq('user_id', userId)
+              .single();
+              
+            if (!fetchError && dealer) {
+              console.log('Current verification_status:', dealer.verification_status);
+            }
+            
+            // Try each status value
+            for (const statusValue of statusValues) {
+              console.log(`Trying status value: ${statusValue} (${typeof statusValue})`);
+              
+              const { error } = await supabase
+                .from('dealers')
+                .update({ verification_status: statusValue })
+                .eq('user_id', userId);
+                
+              if (!error) {
+                console.log(`Successfully updated status to ${statusValue}`);
+                return { success: true };
+              } else {
+                console.error(`Failed with status value ${statusValue}:`, error);
+              }
+            }
+            
+            // If all status values failed, try updating just the profiles table
+            console.log('Trying to update only user profile status');
+            const isActive = status === 'approved';
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .update({ is_active: isActive })
+              .eq('id', userId);
+              
+            if (!profileError) {
+              console.log('Successfully updated user profile is_active status');
+              return { 
+                success: true,
+                message: 'Updated user active status but could not update dealer verification status'
+              };
+            }
+            
+            // If all attempts failed, throw error
+            throw new Error('Failed to update dealer status with any format');
+          } catch (error) {
+            console.error('Direct dealer status update failed:', error);
+            return { success: false, error: error.message };
+          }
+        }
+      };
+      
+      // Map the UI status to a standard status
+      const mappedStatus = 
+        newStatus === 'approved' ? 'approved' :
+        newStatus === 'rejected' ? 'rejected' :
+        'pending';
+      
+      // Try to update the dealer status directly
+      const result = await DirectDealerService.updateDealerStatus(userId, mappedStatus);
+      
+      if (result.success) {
+        // Also update user profile status
+        await UserService.updateUserStatus(userId, 
+          newStatus === 'approved' ? 'active' : 
+          newStatus === 'rejected' ? 'suspended' : 
+          'pending'
+        );
+          
+        // Update local state
+        setApplications(applications.map(app => 
+          app.id === appId ? { ...app, status: newStatus } : app
+        ));
+        
+        setSuccessMessage(`Application status updated to ${newStatus}`);
+        
+        // Refresh the data
+        await fetchDealerApplications();
+      } else {
+        throw new Error(result.error || 'Failed to update status');
+      }
+    } catch (error) {
+      console.error('Error updating dealer status:', error);
+      setError(error.message || 'An error occurred while updating status');
+    } finally {
+      setProcessingIds(prev => prev.filter(id => id !== appId));
+    }
   };
   
   // Handle document verification
@@ -229,6 +330,19 @@ const DealerApprovals = () => {
           </span>
         </div>
       </div>
+      
+      {/* Error and Success messages */}
+      {error && (
+        <div className="bg-error-50 border border-error-200 text-error-700 px-4 py-3 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      {successMessage && (
+        <div className="bg-success-50 border border-success-200 text-success-700 px-4 py-3 rounded-md">
+          {successMessage}
+        </div>
+      )}
       
       {/* Tabs */}
       <div className="border-b border-neutral-200">
@@ -314,8 +428,13 @@ const DealerApprovals = () => {
                             handleStatusChange(application.id, 'approved');
                           }}
                           className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-success-600 hover:bg-success-700"
+                          disabled={processingIds.includes(application.id)}
                         >
-                          <FiCheck className="mr-1 h-3 w-3" />
+                          {processingIds.includes(application.id) ? (
+                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-white border-r-transparent align-[-0.125em] mr-1"></span>
+                          ) : (
+                            <FiCheck className="mr-1 h-3 w-3" />
+                          )}
                           Approve
                         </button>
                         <button
@@ -324,8 +443,13 @@ const DealerApprovals = () => {
                             handleStatusChange(application.id, 'rejected');
                           }}
                           className="inline-flex items-center px-3 py-1 border border-transparent rounded-md shadow-sm text-xs font-medium text-white bg-error-600 hover:bg-error-700"
+                          disabled={processingIds.includes(application.id)}
                         >
-                          <FiX className="mr-1 h-3 w-3" />
+                          {processingIds.includes(application.id) ? (
+                            <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-white border-r-transparent align-[-0.125em] mr-1"></span>
+                          ) : (
+                            <FiX className="mr-1 h-3 w-3" />
+                          )}
                           Reject
                         </button>
                       </div>
@@ -336,7 +460,11 @@ const DealerApprovals = () => {
                           handleStatusChange(application.id, 'review');
                         }}
                         className="inline-flex items-center px-3 py-1 border border-neutral-300 rounded-md shadow-sm text-xs font-medium text-neutral-700 bg-white hover:bg-neutral-50"
+                        disabled={processingIds.includes(application.id)}
                       >
+                        {processingIds.includes(application.id) ? (
+                          <span className="inline-block h-3 w-3 animate-spin rounded-full border-2 border-solid border-neutral-500 border-r-transparent align-[-0.125em] mr-1"></span>
+                        ) : null}
                         Reopen
                       </button>
                     )}
@@ -542,7 +670,11 @@ const DealerApprovals = () => {
                               <button
                                 onClick={() => handleStatusChange(application.id, 'review')}
                                 className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
+                                disabled={processingIds.includes(application.id)}
                               >
+                                {processingIds.includes(application.id) ? (
+                                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent align-[-0.125em] mr-2"></span>
+                                ) : null}
                                 Start Review Process
                               </button>
                             )}
@@ -551,15 +683,25 @@ const DealerApprovals = () => {
                                 <button
                                   onClick={() => handleStatusChange(application.id, 'approved')}
                                   className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-success-600 hover:bg-success-700"
+                                  disabled={processingIds.includes(application.id)}
                                 >
-                                  <FiCheck className="mr-2 h-4 w-4" />
+                                  {processingIds.includes(application.id) ? (
+                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent align-[-0.125em] mr-2"></span>
+                                  ) : (
+                                    <FiCheck className="mr-2 h-4 w-4" />
+                                  )}
                                   Approve Application
                                 </button>
                                 <button
                                   onClick={() => handleStatusChange(application.id, 'rejected')}
                                   className="inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-error-600 hover:bg-error-700"
+                                  disabled={processingIds.includes(application.id)}
                                 >
-                                  <FiX className="mr-2 h-4 w-4" />
+                                  {processingIds.includes(application.id) ? (
+                                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent align-[-0.125em] mr-2"></span>
+                                  ) : (
+                                    <FiX className="mr-2 h-4 w-4" />
+                                  )}
                                   Reject Application
                                 </button>
                               </>

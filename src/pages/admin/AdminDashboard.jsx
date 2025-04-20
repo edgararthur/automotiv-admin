@@ -15,99 +15,11 @@ import {
   FiMoreVertical
 } from 'react-icons/fi';
 
-// Mock data for the admin dashboard
-const platformStats = {
-  dealers: { value: 48, change: 6.7 },
-  products: { value: 12567, change: 12.3 },
-  revenue: { value: 843750, change: 8.2 },
-  users: { value: 8954, change: 14.5 }
-};
-
-const revenueByMonth = [
-  { month: 'Jan', value: 42000 },
-  { month: 'Feb', value: 51000 },
-  { month: 'Mar', value: 63000 },
-  { month: 'Apr', value: 58000 },
-  { month: 'May', value: 71000 },
-  { month: 'Jun', value: 78000 },
-  { month: 'Jul', value: 85000 },
-  { month: 'Aug', value: 93000 },
-  { month: 'Sep', value: 102000 },
-  { month: 'Oct', value: 110000 },
-  { month: 'Nov', value: 94000 },
-  { month: 'Dec', value: 96750 }
-];
-
-const topDealers = [
-  { id: 1, name: 'Premium Auto Parts Inc.', revenue: 124580, products: 432, status: 'active' },
-  { id: 2, name: 'Elite Motor Supplies', revenue: 98730, products: 378, status: 'active' },
-  { id: 3, name: 'AutoZone Plus', revenue: 87600, products: 293, status: 'active' },
-  { id: 4, name: 'Quality Parts Co.', revenue: 65420, products: 256, status: 'pending' },
-  { id: 5, name: 'Motor City Distribution', revenue: 54320, products: 187, status: 'active' }
-];
-
-const recentTickets = [
-  { 
-    id: 'TKT-1234', 
-    user: 'Michael Johnson', 
-    userType: 'Buyer',
-    subject: 'Order not delivered', 
-    status: 'Open', 
-    priority: 'High',
-    created: '2023-11-28T14:23:00Z' 
-  },
-  { 
-    id: 'TKT-1233', 
-    user: 'Elite Motor Supplies', 
-    userType: 'Dealer',
-    subject: 'Payment processing issue', 
-    status: 'In Progress', 
-    priority: 'Medium',
-    created: '2023-11-28T09:45:00Z' 
-  },
-  { 
-    id: 'TKT-1232', 
-    user: 'Sarah Williams', 
-    userType: 'Buyer',
-    subject: 'Wrong part received', 
-    status: 'Open', 
-    priority: 'Medium',
-    created: '2023-11-27T16:12:00Z' 
-  },
-  { 
-    id: 'TKT-1231', 
-    user: 'AutoZone Plus', 
-    userType: 'Dealer',
-    subject: 'Product image upload failing', 
-    status: 'Resolved', 
-    priority: 'Low',
-    created: '2023-11-27T11:05:00Z' 
-  }
-];
-
-const pendingApprovals = [
-  { 
-    id: 'PROD-4567', 
-    name: 'High Performance Brake Kit', 
-    dealer: 'Elite Motor Supplies',
-    category: 'Brakes & Suspension',
-    submitted: '2023-11-28T10:15:00Z' 
-  },
-  { 
-    id: 'PROD-4566', 
-    name: 'LED Headlight Conversion Kit', 
-    dealer: 'Premium Auto Parts Inc.',
-    category: 'Lighting & Electrical',
-    submitted: '2023-11-28T09:30:00Z' 
-  },
-  { 
-    id: 'DEAL-0023', 
-    name: 'Performance Parts Pro', 
-    dealer: 'New Dealer Application',
-    category: 'Dealer Approval',
-    submitted: '2023-11-27T14:45:00Z' 
-  }
-];
+// Use direct service implementations to avoid import issues
+import DirectDealerService from '../../services/DirectDealerService';
+import DirectUserService from '../../services/DirectUserService';
+import DirectProductService from '../../services/DirectProductService';
+import DirectOrderService from '../../services/DirectOrderService';
 
 // Helper to format dates
 const formatDate = (dateString) => {
@@ -198,17 +110,154 @@ const PriorityBadge = ({ priority }) => {
 const AdminDashboard = () => {
   const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState('month');
-  const [stats, setStats] = useState(platformStats);
+  const [error, setError] = useState(null);
+  
+  // State for dashboard data
+  const [platformStats, setPlatformStats] = useState({
+    dealers: { value: 0, change: 0 },
+    products: { value: 0, change: 0 },
+    revenue: { value: 0, change: 0 },
+    users: { value: 0, change: 0 }
+  });
+  
+  const [revenueByMonth, setRevenueByMonth] = useState([]);
+  const [topDealers, setTopDealers] = useState([]);
+  const [recentTickets, setRecentTickets] = useState([]);
+  const [pendingApprovals, setPendingApprovals] = useState([]);
   
   useEffect(() => {
-    // In a real app, this would fetch data from an API
+    const fetchDashboardData = async () => {
     setLoading(true);
-    setTimeout(() => {
-      setStats(platformStats);
+      setError(null);
+      
+      try {
+        // Fetch all data in parallel
+        const [dealersResult, usersResult, productsResult, ordersResult] = await Promise.all([
+          DirectDealerService.getDealers(),
+          DirectUserService.getAllUsers(),
+          DirectProductService.getProducts(),
+          DirectOrderService.getOrders({ limit: 100 }) // Limit to most recent 100 orders for analytics
+        ]);
+        
+        if (dealersResult.success && usersResult.success && productsResult.success && ordersResult.success) {
+          // Calculate platform stats
+          const dealers = dealersResult.dealers;
+          const users = usersResult.users;
+          const products = productsResult.products;
+          const orders = ordersResult.orders;
+          
+          // Calculate revenue
+          const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+          
+          // Get month-by-month revenue
+          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const currentDate = new Date();
+          const currentYear = currentDate.getFullYear();
+          
+          // Initialize revenue data for each month
+          const monthlyRevenue = monthNames.map(month => ({ month, value: 0 }));
+          
+          // Populate with actual data
+          orders.forEach(order => {
+            const orderDate = new Date(order.created_at);
+            // Only include orders from the current year
+            if (orderDate.getFullYear() === currentYear) {
+              const month = orderDate.getMonth();
+              monthlyRevenue[month].value += (order.total_amount || 0);
+            }
+          });
+          
+          // Prepare top dealers
+          const dealerMap = new Map();
+          orders.forEach(order => {
+            if (order.dealer_id) {
+              if (!dealerMap.has(order.dealer_id)) {
+                dealerMap.set(order.dealer_id, { revenue: 0, products: 0 });
+              }
+              dealerMap.get(order.dealer_id).revenue += (order.total_amount || 0);
+              dealerMap.get(order.dealer_id).products += (order.items?.length || 0);
+            }
+          });
+          
+          // Create top dealers array
+          const topDealersList = dealers
+            .map(dealer => {
+              const stats = dealerMap.get(dealer.id) || { revenue: 0, products: 0 };
+              return {
+                id: dealer.id,
+                name: dealer.company_name || dealer.name,
+                revenue: stats.revenue,
+                products: stats.products,
+                status: dealer.verification_status === 'APPROVED' ? 'active' : 
+                       dealer.verification_status === 'PENDING' ? 'pending' :
+                       dealer.verification_status === 'REJECTED' ? 'suspended' : 'inactive'
+              };
+            })
+            .sort((a, b) => b.revenue - a.revenue)
+            .slice(0, 5);
+          
+          // Get pending approvals
+          const pendingDealers = dealers.filter(dealer => 
+            dealer.verification_status === 'PENDING'
+          ).slice(0, 3).map(dealer => ({
+            id: dealer.id,
+            name: dealer.company_name || dealer.name,
+            dealer: 'New Dealer Application',
+            category: 'Dealer Approval',
+            submitted: dealer.created_at
+          }));
+          
+          const pendingProducts = products.filter(product => 
+            product.approval_status === 'pending'
+          ).slice(0, 3).map(product => ({
+            id: product.id,
+            name: product.name,
+            dealer: dealers.find(d => d.id === product.dealer_id)?.company_name || 'Unknown',
+            category: product.category,
+            submitted: product.created_at
+          }));
+          
+          // Set all the state data
+          setPlatformStats({
+            dealers: { 
+              value: dealers.length, 
+              change: 0 // We would need historical data to calculate change
+            },
+            products: { 
+              value: products.length, 
+              change: 0 
+            },
+            revenue: { 
+              value: totalRevenue, 
+              change: 0 
+            },
+            users: { 
+              value: users.length, 
+              change: 0 
+            }
+          });
+          
+          setRevenueByMonth(monthlyRevenue);
+          setTopDealers(topDealersList);
+          setPendingApprovals([...pendingProducts, ...pendingDealers]);
+          
+          // For recent tickets, we would need a ticket service
+          // This is left as mock data for now
+          setRecentTickets([]);
+          
+        } else {
+          throw new Error('Failed to fetch some dashboard data');
+        }
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError(err.message || 'An error occurred while loading dashboard data');
+      } finally {
       setLoading(false);
-    }, 500);
-  }, [timeRange]);
+      }
+    };
+    
+    fetchDashboardData();
+  }, []);
   
   return (
     <div className="space-y-6">
@@ -223,18 +272,6 @@ const AdminDashboard = () => {
               Here's the latest on your marketplace platform.
             </p>
           </div>
-          <div className="mt-4 md:mt-0">
-            <select
-              value={timeRange}
-              onChange={(e) => setTimeRange(e.target.value)}
-              className="block w-full pl-3 pr-10 py-2 text-base border-neutral-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
-            >
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="year">This Year</option>
-            </select>
-          </div>
         </div>
       </div>
       
@@ -247,17 +284,17 @@ const AdminDashboard = () => {
               <p className="text-sm font-medium text-neutral-500">Total Dealers</p>
               <div className="flex items-baseline">
                 <p className="text-2xl font-semibold text-neutral-900">
-                  {stats.dealers.value}
+                  {platformStats.dealers.value}
                 </p>
                 <p className={`ml-2 flex items-baseline text-sm font-semibold ${
-                  stats.dealers.change >= 0 ? 'text-success-600' : 'text-error-600'
+                  platformStats.dealers.change >= 0 ? 'text-success-600' : 'text-error-600'
                 }`}>
-                  {stats.dealers.change >= 0 ? (
+                  {platformStats.dealers.change >= 0 ? (
                     <FiArrowUp className="self-center flex-shrink-0 h-4 w-4 text-success-500" />
                   ) : (
                     <FiArrowDown className="self-center flex-shrink-0 h-4 w-4 text-error-500" />
                   )}
-                  <span className="ml-1">{Math.abs(stats.dealers.change)}%</span>
+                  <span className="ml-1">{Math.abs(platformStats.dealers.change)}%</span>
                 </p>
               </div>
             </div>
@@ -274,17 +311,17 @@ const AdminDashboard = () => {
               <p className="text-sm font-medium text-neutral-500">Total Products</p>
               <div className="flex items-baseline">
                 <p className="text-2xl font-semibold text-neutral-900">
-                  {stats.products.value.toLocaleString()}
+                  {platformStats.products.value.toLocaleString()}
                 </p>
                 <p className={`ml-2 flex items-baseline text-sm font-semibold ${
-                  stats.products.change >= 0 ? 'text-success-600' : 'text-error-600'
+                  platformStats.products.change >= 0 ? 'text-success-600' : 'text-error-600'
                 }`}>
-                  {stats.products.change >= 0 ? (
+                  {platformStats.products.change >= 0 ? (
                     <FiArrowUp className="self-center flex-shrink-0 h-4 w-4 text-success-500" />
                   ) : (
                     <FiArrowDown className="self-center flex-shrink-0 h-4 w-4 text-error-500" />
                   )}
-                  <span className="ml-1">{Math.abs(stats.products.change)}%</span>
+                  <span className="ml-1">{Math.abs(platformStats.products.change)}%</span>
                 </p>
               </div>
             </div>
@@ -301,17 +338,17 @@ const AdminDashboard = () => {
               <p className="text-sm font-medium text-neutral-500">Platform Revenue</p>
               <div className="flex items-baseline">
                 <p className="text-2xl font-semibold text-neutral-900">
-                  ${stats.revenue.value.toLocaleString()}
+                  ${platformStats.revenue.value.toLocaleString()}
                 </p>
                 <p className={`ml-2 flex items-baseline text-sm font-semibold ${
-                  stats.revenue.change >= 0 ? 'text-success-600' : 'text-error-600'
+                  platformStats.revenue.change >= 0 ? 'text-success-600' : 'text-error-600'
                 }`}>
-                  {stats.revenue.change >= 0 ? (
+                  {platformStats.revenue.change >= 0 ? (
                     <FiArrowUp className="self-center flex-shrink-0 h-4 w-4 text-success-500" />
                   ) : (
                     <FiArrowDown className="self-center flex-shrink-0 h-4 w-4 text-error-500" />
                   )}
-                  <span className="ml-1">{Math.abs(stats.revenue.change)}%</span>
+                  <span className="ml-1">{Math.abs(platformStats.revenue.change)}%</span>
                 </p>
               </div>
             </div>
@@ -328,17 +365,17 @@ const AdminDashboard = () => {
               <p className="text-sm font-medium text-neutral-500">Registered Users</p>
               <div className="flex items-baseline">
                 <p className="text-2xl font-semibold text-neutral-900">
-                  {stats.users.value.toLocaleString()}
+                  {platformStats.users.value.toLocaleString()}
                 </p>
                 <p className={`ml-2 flex items-baseline text-sm font-semibold ${
-                  stats.users.change >= 0 ? 'text-success-600' : 'text-error-600'
+                  platformStats.users.change >= 0 ? 'text-success-600' : 'text-error-600'
                 }`}>
-                  {stats.users.change >= 0 ? (
+                  {platformStats.users.change >= 0 ? (
                     <FiArrowUp className="self-center flex-shrink-0 h-4 w-4 text-success-500" />
                   ) : (
                     <FiArrowDown className="self-center flex-shrink-0 h-4 w-4 text-error-500" />
                   )}
-                  <span className="ml-1">{Math.abs(stats.users.change)}%</span>
+                  <span className="ml-1">{Math.abs(platformStats.users.change)}%</span>
                 </p>
               </div>
             </div>
@@ -353,11 +390,6 @@ const AdminDashboard = () => {
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-medium text-neutral-900">Platform Revenue</h2>
-          <div className="flex space-x-3">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-success-100 text-success-800">
-              +8.2% vs last year
-            </span>
-          </div>
         </div>
         {generateChart(revenueByMonth)}
       </div>

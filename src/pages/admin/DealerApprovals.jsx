@@ -15,6 +15,7 @@ import { format } from 'date-fns';
 import DirectUserService from '../../services/DirectUserService';
 import clsx from 'clsx';
 import { useAuth } from '../../contexts/AuthContext';
+/* Force new deployment with proper imports - v2 */
 import { UserService, supabase } from 'autoplus-shared';
 
 const DealerApprovals = () => {

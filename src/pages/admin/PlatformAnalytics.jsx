@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiDownload, FiFilter, FiCalendar, FiPieChart, FiBarChart2, FiTrendingUp, FiTrendingDown, FiAlertCircle } from 'react-icons/fi';
-import { AnalyticsService } from '../../../../shared';
+import { AnalyticsService } from 'autoplus-shared';
 
 // Format currency function
 const formatCurrency = (value) => {

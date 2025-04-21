@@ -10,8 +10,12 @@ import {
   FiChevronUp,
   FiAlertTriangle
 } from 'react-icons/fi';
-import UserService from '../../../../shared/services/userService.js';
-import supabase from '../../../../shared/supabase/supabaseClient.js';
+import { toast } from 'react-toastify';
+import { format } from 'date-fns';
+import DirectUserService from '../../services/DirectUserService';
+import clsx from 'clsx';
+import { useAuth } from '../../contexts/AuthContext';
+import { UserService, supabase } from 'autoplus-shared';
 
 const DealerApprovals = () => {
   const [applications, setApplications] = useState([]);

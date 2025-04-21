@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiEye, FiCheckCircle, FiXCircle, FiAlertTriangle, FiEdit, FiLoader, FiX } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
-import { ProductService } from '../../../../shared';
+import { ProductService } from 'autoplus-shared';
 import { toast } from 'react-toastify';
 
 const ProductManagement = () => {

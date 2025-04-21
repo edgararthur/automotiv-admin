@@ -1,7 +1,7 @@
-import supabase from '../supabase/supabaseClient';
-import { logError } from '../utils/errorLogger';
-import CartService from './cartService';
-import PaymentService from './paymentService';
+import supabase from '../supabase/supabaseClient.js';
+import { logError } from '../utils/errorLogger.js';
+import CartService from './cartService.js';
+import PaymentService from './paymentService.js';
 
 /**
  * Service for managing order operations

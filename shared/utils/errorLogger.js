@@ -10,9 +10,8 @@ export const logError = (source, error) => {
   
   console.error(`[${timestamp}] [ERROR] ${source}: ${errorMessage}`);
   
-  if (process.env.NODE_ENV !== 'production') {
-    console.error(stack);
-  }
+  // Always log stack trace in development environments (browser or Node.js)
+  console.error(stack);
   
   // In a real app, you might want to:
   // 1. Send to a logging service (Sentry, LogRocket, etc.)

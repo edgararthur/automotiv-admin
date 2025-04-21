@@ -1,14 +1,15 @@
-import supabase from '../supabase/supabaseClient';
-import { logError } from '../utils/errorLogger';
+import supabase from '../supabase/supabaseClient.js';
+import { logError } from '../utils/errorLogger.js';
 
-// Get environment variables
-const MTN_MOMO_API_KEY = import.meta.env.VITE_MTN_MOMO_API_KEY;
-const MTN_MOMO_USER_ID = import.meta.env.VITE_MTN_MOMO_USER_ID;
-const MTN_MOMO_API_URL = import.meta.env.VITE_MTN_MOMO_API_URL;
+// For browser compatibility, use dummy values directly
+// These would normally come from environment variables
+const MTN_MOMO_API_KEY = 'dummy-key';
+const MTN_MOMO_USER_ID = 'dummy-user';
+const MTN_MOMO_API_URL = 'https://api.example.com/mtn';
 
-const TELECEL_CASH_API_KEY = import.meta.env.VITE_TELECEL_CASH_API_KEY;
-const TELECEL_CASH_MERCHANT_ID = import.meta.env.VITE_TELECEL_CASH_MERCHANT_ID;
-const TELECEL_CASH_API_URL = import.meta.env.VITE_TELECEL_CASH_API_URL;
+const TELECEL_CASH_API_KEY = 'dummy-key';
+const TELECEL_CASH_MERCHANT_ID = 'dummy-merchant';
+const TELECEL_CASH_API_URL = 'https://api.example.com/telecel';
 
 // Fixed service charge amount
 const SERVICE_CHARGE = 5.00; // 5 GHS

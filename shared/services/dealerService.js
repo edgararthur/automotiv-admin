@@ -1,5 +1,5 @@
 import supabase from '../supabase/supabaseClient.js';
-import { logError } from '../utils/errorLogger';
+import { logError } from '../utils/errorLogger.js';
 
 /**
  * Service for managing dealer operations, reviews, and reputation tiers

@@ -1,5 +1,5 @@
-import supabase from '../supabase/supabaseClient';
-import { logError } from '../utils/errorLogger';
+import supabase from '../supabase/supabaseClient.js';
+import { logError } from '../utils/errorLogger.js';
 
 /**
  * Service for managing shopping cart operations

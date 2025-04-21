@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import Sidebar from '../navigation/Sidebar';
 import Header from '../navigation/Header';
 
-const AdminLayout = ({ children }) => {
+const AdminLayout = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { currentUser } = useAuth();
 
@@ -29,7 +30,7 @@ const AdminLayout = ({ children }) => {
         <Header portalType="admin" toggleSidebar={toggleSidebar} user={currentUser} />
         
         <main className="flex-1 overflow-y-auto p-6 bg-gray-50">
-          {children}
+          <Outlet />
         </main>
       </div>
     </div>

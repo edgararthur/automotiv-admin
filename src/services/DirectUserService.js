@@ -23,14 +23,11 @@ class DirectUserService {
     try {
       let query = supabase
         .from('profiles')
-        .select(`
-          *,
-          users!user_id(id, email, created_at, last_sign_in_at)
-        `);
+        .select('*');
       
       // Apply filters
       if (options.role) {
-        query = query.eq('role', options.role);
+        query = query.eq('user_type', options.role);
       }
       
       if (options.status) {
@@ -106,6 +103,79 @@ class DirectUserService {
       return {
         success: false,
         error: error.message || 'Failed to update user status'
+      };
+    }
+  }
+
+  /**
+   * Get current user with permissions
+   * @returns {Promise<Object>} - Result with success flag and user data or error
+   */
+  static async getCurrentUserWithPermissions() {
+    try {
+      // Get current session
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) throw sessionError;
+      
+      if (!sessionData.session) {
+        return {
+          success: false,
+          message: 'No active session'
+        };
+      }
+      
+      const userId = sessionData.session.user.id;
+      
+      // Get user profile without trying to join with roles
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) throw profileError;
+      
+      // For ADMIN users, hardcode permissions
+      const isAdmin = profile.user_type === 'admin';
+      
+      // Define standard admin permissions
+      const adminPermissions = [
+        'users.view', 'users.create', 'users.edit', 'users.delete',
+        'products.view', 'products.create', 'products.edit', 'products.delete', 'products.moderate',
+        'dealers.view', 'dealers.create', 'dealers.edit', 'dealers.approve',
+        'roles.view', 'roles.manage',
+        'analytics.view',
+        'support.view'
+      ];
+      
+      console.log('User profile data:', {
+        user_type: profile.user_type,
+        isAdmin: isAdmin,
+        permissions: isAdmin ? adminPermissions : []
+      });
+      
+      return {
+        success: true,
+        user: {
+          ...sessionData.session.user,
+          profile: {
+            ...profile,
+            role: isAdmin ? 'ADMIN' : profile.user_type?.toUpperCase() || 'UNKNOWN',
+            // Add permissions based on user type
+            permissions: isAdmin ? adminPermissions : [],
+            // Add a roles object for compatibility
+            roles: { 
+              name: isAdmin ? 'ADMIN' : profile.user_type?.toUpperCase() || 'UNKNOWN'
+            }
+          }
+        }
+      };
+    } catch (error) {
+      logError('DirectUserService.getCurrentUserWithPermissions', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to get current user'
       };
     }
   }

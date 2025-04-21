@@ -133,126 +133,151 @@ const AdminDashboard = () => {
       try {
         // Fetch all data in parallel
         const [dealersResult, usersResult, productsResult, ordersResult] = await Promise.all([
-          DirectDealerService.getDealers(),
-          DirectUserService.getAllUsers(),
-          DirectProductService.getProducts(),
-          DirectOrderService.getOrders({ limit: 100 }) // Limit to most recent 100 orders for analytics
+          DirectDealerService.getDealers().catch(err => ({ success: false, error: err.message })),
+          DirectUserService.getAllUsers().catch(err => ({ success: false, error: err.message })),
+          DirectProductService.getProducts().catch(err => ({ success: false, error: err.message })),
+          DirectOrderService.getOrders({ limit: 100 }).catch(err => ({ success: false, error: err.message }))
         ]);
         
-        if (dealersResult.success && usersResult.success && productsResult.success && ordersResult.success) {
-          // Calculate platform stats
-          const dealers = dealersResult.dealers;
-          const users = usersResult.users;
-          const products = productsResult.products;
-          const orders = ordersResult.orders;
-          
-          // Calculate revenue
-          const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-          
-          // Get month-by-month revenue
-          const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-          const currentDate = new Date();
-          const currentYear = currentDate.getFullYear();
-          
-          // Initialize revenue data for each month
-          const monthlyRevenue = monthNames.map(month => ({ month, value: 0 }));
-          
-          // Populate with actual data
-          orders.forEach(order => {
-            const orderDate = new Date(order.created_at);
-            // Only include orders from the current year
-            if (orderDate.getFullYear() === currentYear) {
-              const month = orderDate.getMonth();
-              monthlyRevenue[month].value += (order.total_amount || 0);
+        // Log the fetch results for debugging
+        console.log('Dashboard data fetch results:', {
+          dealers: dealersResult.success,
+          users: usersResult.success,
+          products: productsResult.success,
+          orders: ordersResult.success
+        });
+        
+        // Initialize with default values
+        let dealers = [];
+        let users = [];
+        let products = [];
+        let orders = [];
+        
+        // Use data where available
+        if (dealersResult.success) dealers = dealersResult.dealers || [];
+        if (usersResult.success) users = usersResult.users || [];
+        if (productsResult.success) products = productsResult.products || [];
+        if (ordersResult.success) orders = ordersResult.orders || [];
+        
+        // Calculate revenue
+        const totalRevenue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        
+        // Get month-by-month revenue
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentDate = new Date();
+        const currentYear = currentDate.getFullYear();
+        
+        // Initialize revenue data for each month
+        const monthlyRevenue = monthNames.map(month => ({ month, value: 0 }));
+        
+        // Populate with actual data
+        orders.forEach(order => {
+          const orderDate = new Date(order.created_at);
+          // Only include orders from the current year
+          if (orderDate.getFullYear() === currentYear) {
+            const month = orderDate.getMonth();
+            monthlyRevenue[month].value += (order.total_amount || 0);
+          }
+        });
+        
+        // Prepare top dealers
+        const dealerMap = new Map();
+        orders.forEach(order => {
+          if (order.dealer_id) {
+            if (!dealerMap.has(order.dealer_id)) {
+              dealerMap.set(order.dealer_id, { revenue: 0, products: 0 });
             }
-          });
-          
-          // Prepare top dealers
-          const dealerMap = new Map();
-          orders.forEach(order => {
-            if (order.dealer_id) {
-              if (!dealerMap.has(order.dealer_id)) {
-                dealerMap.set(order.dealer_id, { revenue: 0, products: 0 });
-              }
-              dealerMap.get(order.dealer_id).revenue += (order.total_amount || 0);
-              dealerMap.get(order.dealer_id).products += (order.items?.length || 0);
-            }
-          });
-          
-          // Create top dealers array
-          const topDealersList = dealers
-            .map(dealer => {
-              const stats = dealerMap.get(dealer.id) || { revenue: 0, products: 0 };
-              return {
-                id: dealer.id,
-                name: dealer.company_name || dealer.name,
-                revenue: stats.revenue,
-                products: stats.products,
-                status: dealer.verification_status === 'APPROVED' ? 'active' : 
-                       dealer.verification_status === 'PENDING' ? 'pending' :
-                       dealer.verification_status === 'REJECTED' ? 'suspended' : 'inactive'
-              };
-            })
-            .sort((a, b) => b.revenue - a.revenue)
-            .slice(0, 5);
-          
-          // Get pending approvals
-          const pendingDealers = dealers.filter(dealer => 
-            dealer.verification_status === 'PENDING'
-          ).slice(0, 3).map(dealer => ({
-            id: dealer.id,
-            name: dealer.company_name || dealer.name,
-            dealer: 'New Dealer Application',
-            category: 'Dealer Approval',
-            submitted: dealer.created_at
-          }));
-          
-          const pendingProducts = products.filter(product => 
-            product.approval_status === 'pending'
-          ).slice(0, 3).map(product => ({
-            id: product.id,
-            name: product.name,
-            dealer: dealers.find(d => d.id === product.dealer_id)?.company_name || 'Unknown',
-            category: product.category,
-            submitted: product.created_at
-          }));
-          
-          // Set all the state data
-          setPlatformStats({
-            dealers: { 
-              value: dealers.length, 
-              change: 0 // We would need historical data to calculate change
-            },
-            products: { 
-              value: products.length, 
-              change: 0 
-            },
-            revenue: { 
-              value: totalRevenue, 
-              change: 0 
-            },
-            users: { 
-              value: users.length, 
-              change: 0 
-            }
-          });
-          
-          setRevenueByMonth(monthlyRevenue);
-          setTopDealers(topDealersList);
-          setPendingApprovals([...pendingProducts, ...pendingDealers]);
-          
-          // For recent tickets, we would need a ticket service
-          // This is left as mock data for now
-          setRecentTickets([]);
-          
-        } else {
-          throw new Error('Failed to fetch some dashboard data');
+            dealerMap.get(order.dealer_id).revenue += (order.total_amount || 0);
+            dealerMap.get(order.dealer_id).products += (order.items?.length || 0);
+          }
+        });
+        
+        // Create top dealers array
+        const topDealersList = dealers
+          .map(dealer => {
+            const stats = dealerMap.get(dealer.id) || { revenue: 0, products: 0 };
+            return {
+              id: dealer.id,
+              name: dealer.company_name || dealer.name,
+              revenue: stats.revenue,
+              products: stats.products,
+              status: dealer.verification_status === 'APPROVED' ? 'active' : 
+                     dealer.verification_status === 'PENDING' ? 'pending' :
+                     dealer.verification_status === 'REJECTED' ? 'suspended' : 'inactive'
+            };
+          })
+          .sort((a, b) => b.revenue - a.revenue)
+          .slice(0, 5);
+        
+        // Get pending approvals
+        const pendingDealers = dealers.filter(dealer => 
+          dealer.verification_status === 'PENDING'
+        ).slice(0, 3).map(dealer => ({
+          id: dealer.id,
+          name: dealer.company_name || dealer.name,
+          dealer: 'New Dealer Application',
+          category: 'Dealer Approval',
+          submitted: dealer.created_at
+        }));
+        
+        const pendingProducts = products.filter(product => 
+          product.approval_status === 'pending'
+        ).slice(0, 3).map(product => ({
+          id: product.id,
+          name: product.name,
+          dealer: dealers.find(d => d.id === product.dealer_id)?.company_name || 'Unknown',
+          category: product.category,
+          submitted: product.created_at
+        }));
+        
+        // Set all the state data
+        setPlatformStats({
+          dealers: { 
+            value: dealers.length, 
+            change: 0 // We would need historical data to calculate change
+          },
+          products: { 
+            value: products.length, 
+            change: 0 
+          },
+          revenue: { 
+            value: totalRevenue, 
+            change: 0 
+          },
+          users: { 
+            value: users.length, 
+            change: 0 
+          }
+        });
+        
+        setRevenueByMonth(monthlyRevenue);
+        setTopDealers(topDealersList);
+        setPendingApprovals([...pendingProducts, ...pendingDealers]);
+        
+        // For recent tickets, we would need a ticket service
+        // This is left as mock data for now
+        setRecentTickets([]);
+        
+        // Display a warning if any fetches failed
+        if (!dealersResult.success || !usersResult.success || !productsResult.success || !ordersResult.success) {
+          setError('Some data could not be loaded. Dashboard may be incomplete.');
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
         setError(err.message || 'An error occurred while loading dashboard data');
+        // Continue with empty data
+        setPlatformStats({
+          dealers: { value: 0, change: 0 },
+          products: { value: 0, change: 0 },
+          revenue: { value: 0, change: 0 },
+          users: { value: 0, change: 0 }
+        });
+        setRevenueByMonth([]);
+        setTopDealers([]);
+        setPendingApprovals([]);
+        setRecentTickets([]);
       } finally {
-      setLoading(false);
+        setLoading(false);
       }
     };
     

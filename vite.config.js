@@ -7,10 +7,17 @@ export default defineConfig(({ mode }) => {
   // Load env file from project root
   process.env = { ...process.env, ...loadEnv(mode, path.resolve(__dirname, '..'), '') };
   
+  const sharedPath = path.resolve(__dirname, '../shared');
+  console.log('Admin vite.config.js: Resolved shared path:', sharedPath);
+  
   return {
     plugins: [react()],
     server: {
       port: 3003, // Different port for admin platform
+      fs: {
+        // Allow serving files from one level up to the project root
+        allow: ['..']
+      }
     },
     optimizeDeps: {
       include: ['autoplus-shared']
@@ -18,7 +25,7 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        'autoplus-shared': path.resolve(__dirname, '../shared')
+        'autoplus-shared': sharedPath
       },
     },
   };

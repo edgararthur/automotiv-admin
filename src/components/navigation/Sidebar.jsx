@@ -25,14 +25,14 @@ const Sidebar = ({ portalType, isOpen, onClose }) => {
   const navItems = 
     portalType === 'admin' 
       ? [
-          { name: 'Dashboard', icon: <FiHome size={20} />, path: '/dashboard' },
-          { name: 'Users', icon: <FiUsers size={20} />, path: '/users' },
-          { name: 'Dealers', icon: <FiUsers size={20} />, path: '/dealers' },
-          { name: 'Dealer Approvals', icon: <FiCheckSquare size={20} />, path: '/dealer-approvals' },
-          { name: 'Products', icon: <FiPackage size={20} />, path: '/products' },
-          { name: 'Product Moderation', icon: <FiDatabase size={20} />, path: '/product-moderation' },
-          { name: 'Support Tickets', icon: <FiHelpCircle size={20} />, path: '/support-tickets' },
-          { name: 'Analytics', icon: <FiBarChart2 size={20} />, path: '/analytics' },
+          { name: 'Dashboard', icon: <FiHome size={20} />, path: '/admin' },
+          { name: 'Users', icon: <FiUsers size={20} />, path: '/admin/users' },
+          { name: 'Dealers', icon: <FiUsers size={20} />, path: '/admin/dealers' },
+          { name: 'Dealer Approvals', icon: <FiCheckSquare size={20} />, path: '/admin/dealer-approvals' },
+          { name: 'Products', icon: <FiPackage size={20} />, path: '/admin/products' },
+          { name: 'Product Moderation', icon: <FiDatabase size={20} />, path: '/admin/product-moderation' },
+          { name: 'Support Tickets', icon: <FiHelpCircle size={20} />, path: '/admin/support-tickets' },
+          { name: 'Analytics', icon: <FiBarChart2 size={20} />, path: '/admin/analytics' },
         ]
       : [
           { name: 'Dashboard', icon: <FiHome size={20} />, path: '/dealer/dashboard' },

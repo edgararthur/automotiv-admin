@@ -14,6 +14,22 @@ export default defineConfig(({ mode }) => {
   // If local shared doesn't exist, use the parent directory one (for local development)
   if (!fs.existsSync(sharedPath)) {
     sharedPath = path.resolve(__dirname, '../shared');
+    
+    // For Vercel deployment - if parent shared doesn't exist either, use src/shared
+    if (!fs.existsSync(sharedPath)) {
+      console.log('Shared directory not found at parent level, using src/shared instead');
+      sharedPath = path.resolve(__dirname, './src/shared');
+      
+      // Create src/shared if it doesn't exist
+      if (!fs.existsSync(sharedPath)) {
+        try {
+          fs.mkdirSync(sharedPath, { recursive: true });
+          console.log('Created src/shared directory');
+        } catch (err) {
+          console.error('Failed to create src/shared directory:', err);
+        }
+      }
+    }
   }
   
   console.log('Admin vite.config.js: Resolved shared path:', sharedPath);

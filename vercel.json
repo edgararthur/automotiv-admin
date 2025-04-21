@@ -1,9 +1,29 @@
 {
+  "version": 2,
+  "public": true,
+  "cleanUrls": true,
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "dist",
-  "framework": "vite",
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=1, stale-while-revalidate" }
+      ]
+    }
+  ],
+  "github": {
+    "enabled": true,
+    "silent": false
+  },
   "routes": [
     { "src": "/[^.]+", "dest": "/", "status": 200 }
   ]

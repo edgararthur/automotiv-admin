@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiSearch, FiFilter, FiEdit, FiTrash2, FiLock, FiUnlock, FiMail, FiUser, FiUserPlus, FiDownload, FiChevronLeft, FiChevronRight, FiCheck } from 'react-icons/fi';
-import UserService from '/Users/edwardarthur/Desktop/autoplus/shared/services/userService.js';
+import { UserService } from 'autoplus-shared';
 import { toast } from 'react-toastify';
 
 // Mock data for user management

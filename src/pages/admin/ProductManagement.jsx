@@ -3,6 +3,9 @@ import { FiSearch, FiFilter, FiEye, FiCheckCircle, FiXCircle, FiAlertTriangle, F
 import { Link } from 'react-router-dom';
 import { ProductService } from 'autoplus-shared';
 import { toast } from 'react-toastify';
+import { useAuth } from '../../contexts/AuthContext';
+import { Button, Table, Modal, Form, Input, Select, Tabs, message, Spin } from 'antd';
+import { SearchOutlined, FilterOutlined } from '@ant-design/icons';
 
 const ProductManagement = () => {
   const [products, setProducts] = useState([]);

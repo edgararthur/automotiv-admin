@@ -29,7 +29,7 @@ const LoadingSpinner = ({ size = 'medium', color = 'primary', className = '' }) 
 					className="opacity-25" 
 					cx="12" 
 					cy="12" 
-					r="10" 
+					r="10e" 
 					stroke="currentColor" 
 					strokeWidth="4"
 				/>

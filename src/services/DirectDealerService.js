@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import supabase from '../../../shared/supabase/supabaseClient.js';
+import supabase from '../../shared/supabase/supabaseClient.js';
 
 // Initialize Supabase client directly as a fallback
 const supabaseUrl = 'https://zlzzdycsizfwjkbulwgt.supabase.co';

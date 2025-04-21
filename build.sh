@@ -5,6 +5,13 @@ echo "Current directory: $(pwd)"
 echo "Files in current directory:"
 ls -la
 
+# Try to create a symlink from /vercel/shared to ./shared
+if [ ! -d "/vercel/shared" ]; then
+  echo "Creating symlink from /vercel/shared to ./shared"
+  mkdir -p ./shared
+  ln -sf $(pwd)/shared /vercel/shared || echo "Failed to create symlink to /vercel/shared"
+fi
+
 # Check if shared directory exists
 if [ ! -d "./shared" ]; then
   echo "Creating shared directory"
@@ -45,6 +52,30 @@ export const getAllUsers = async (filters = {}) => {
 export const setupAuthListener = () => {
   return { data: { subscription: { unsubscribe: () => {} } } };
 };
+
+export const getCurrentUser = async () => {
+  return { success: true, user: null };
+};
+
+export const loginUser = async () => {
+  return { success: true, user: null };
+};
+
+export const registerUser = async () => {
+  return { success: true, user: null };
+};
+
+export const logoutUser = async () => {
+  return { success: true };
+};
+
+export const resetPassword = async () => {
+  return { success: true };
+};
+
+export const updateProfile = async () => {
+  return { success: true, profile: {} };
+};
 EOL
   
   # Create productService.js
@@ -80,7 +111,7 @@ EOL
 // Supabase client
 const supabase = {
   auth: {
-    onAuthStateChange: () => ({ data: { subscription: {} } })
+    onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } })
   },
   from: () => ({
     select: () => ({ eq: () => ({ single: () => ({ data: null, error: null }) }) })

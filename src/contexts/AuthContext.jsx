@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { UserService, supabase } from 'autoplus-shared';
+// Import directly from the shared directory instead of using the alias
+import * as UserService from '../../shared/services/userService';
+import supabase from '../../shared/supabase/supabaseClient';
 import DirectUserService from '../services/DirectUserService';
 
 // Log what was imported to check for undefined values

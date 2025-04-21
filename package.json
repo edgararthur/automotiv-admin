@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "prebuild": "echo 'Running prebuild step to set up shared modules'",
     "build": "vite build",
     "preview": "vite preview"
   },

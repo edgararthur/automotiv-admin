@@ -2,13 +2,15 @@
   "version": 2,
   "public": true,
   "cleanUrls": true,
-  "buildCommand": "chmod +x build.sh && ./build.sh",
+  "buildCommand": "chmod +x build.sh && ./build.sh && ln -sf $(pwd)/shared /vercel/shared",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "dist",
   "env": {
     "NODE_ENV": "production",
-    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
+    "VERCEL_FORCE_NO_BUILD_CACHE": "1",
+    "SKIP_PREFLIGHT_CHECK": "true",
+    "VERCEL_SYMLINKS": "true"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
@@ -28,5 +30,6 @@
   },
   "routes": [
     { "src": "/[^.]+", "dest": "/", "status": 200 }
-  ]
+  ],
+  "framework": "vite"
 } 

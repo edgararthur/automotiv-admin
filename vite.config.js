@@ -49,7 +49,8 @@ export default defineConfig(({ mode }) => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, './src'),
-        'autoplus-shared': sharedPath
+        'autoplus-shared': sharedPath,
+        '../../../../shared': sharedPath  // Add direct alias for relative import
       },
     },
   };

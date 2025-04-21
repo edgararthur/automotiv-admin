@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "echo 'Running prebuild step to set up shared modules' && node -e \"console.log('Current directory:', process.cwd())\"",
+    "prebuild": "node ./scripts/fixImports.js && mkdir -p shared/services shared/supabase && npm run setup-shared",
+    "setup-shared": "node ./scripts/setupShared.js",
     "build": "vite build",
     "preview": "vite preview"
   },

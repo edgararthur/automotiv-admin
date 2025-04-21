@@ -5,13 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "prebuild": "echo 'Running prebuild step to set up shared modules'",
+    "prebuild": "echo 'Running prebuild step to set up shared modules' && node -e \"console.log('Current directory:', process.cwd())\"",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "autoplus-shared": "file:../shared",
+    "autoplus-shared": "file:./shared",
     "axios": "^1.4.0",
     "chart.js": "^4.3.3",
     "clsx": "^2.0.0",

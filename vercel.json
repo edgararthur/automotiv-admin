@@ -7,7 +7,8 @@
   "installCommand": "npm install",
   "outputDirectory": "dist",
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VERCEL_FORCE_NO_BUILD_CACHE": "1"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
@@ -22,7 +23,8 @@
   ],
   "github": {
     "enabled": true,
-    "silent": false
+    "silent": false,
+    "autoAlias": true
   },
   "routes": [
     { "src": "/[^.]+", "dest": "/", "status": 200 }
